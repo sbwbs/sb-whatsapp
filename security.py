@@ -1,5 +1,7 @@
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from fastapi.responses import PlainTextResponse
 import hashlib
 import hmac
 import os
@@ -57,7 +59,7 @@ def verify_webhook(mode: str, token: str, challenge: str) -> str:
     if mode and token:
         if mode == "subscribe" and token == VERIFY_TOKEN:
             logging.info(f"Webhook verified successfully. Returning challenge: {challenge}")
-            return challenge
+            return PlainTextResponse(content=challenge)
         else:
             logging.error(f"Verification failed. Mode: {mode}, Token: {token}")
             raise HTTPException(status_code=403, detail="Verification failed.")
