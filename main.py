@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
 # from fastapi.middleware.trustedhost import TrustedHostMiddleware
-# from fastapi_limiter import FastAPILimiter
+from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 import logging
 import json
