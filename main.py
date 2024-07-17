@@ -1,8 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
-# from fastapi.middleware.trustedhost import TrustedHostMiddleware
-# from fastapi_limiter import FastAPILimiter
-# from fastapi_limiter.depends import RateLimiter
 import logging
 import json
 from security import signature_auth, verify_webhook
@@ -11,20 +8,12 @@ from sendbird_utils import create_sendbird_user, send_sendbird_message
 from config import Config
 
 app = FastAPI()
-
-# # Middleware
-# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["your-domain.com"])
-
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # In-memory cache to track messages
 whatsapp_messages = {}
-
-# @app.on_event("startup")
-# async def startup():
-#     await FastAPILimiter.init("redis://localhost")
 
 @app.get("/webhook")
 async def verify_webhook_subscription(
@@ -40,11 +29,16 @@ async def verify_webhook_subscription(
 @app.post("/webhook")
 async def handle_whatsapp_webhook(request: Request, signature: str = Depends(signature_auth)):
     try:
+        # Log raw request body
+        raw_body = await request.body()
+        logger.info(f"Raw webhook payload: {raw_body}")
+
         body = await request.json()
         logger.info(f"Received webhook payload: {body}")
         
         if is_valid_whatsapp_message(body):
             wa_message = extract_whatsapp_message(body)
+            logger.info(f"Extracted WhatsApp message: {wa_message}")
             sendbird_user = await create_sendbird_user(wa_message["from_number"])
             channel_url = await send_sendbird_message(sendbird_user["user_id"], Config.BOT_USER_ID, wa_message["text"])
             whatsapp_messages[wa_message["from_number"]] = channel_url
