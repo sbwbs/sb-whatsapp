@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import httpx
 import logging
 from security import signature_auth, verify_webhook
+import uvicorn
 
 app = FastAPI()
 
@@ -41,13 +42,21 @@ async def verify_webhook_subscription(
     logging.info(f"Webhook verified successfully. Returning challenge: {challenge}")
     return PlainTextResponse(content=result)
 
-
 @app.post("/webhook")
-async def handle_whatsapp_webhook(message: WhatsAppMessage, signature: str = Depends(signature_auth)):
-    logging.info(f"Received webhook payload: {message}")
+async def handle_whatsapp_webhook(request: Request, signature: str = Depends(signature_auth)):
+    body = await request.json()
+    logging.info(f"Received webhook payload: {body}")
     
-    if message.object == "whatsapp_business_account":
-        for entry in message.entry:
+    # Check if it's a WhatsApp status update
+    if (body.get("entry", [{}])[0]
+        .get("changes", [{}])[0]
+        .get("value", {})
+        .get("statuses")):
+        logging.info("Received a WhatsApp status update.")
+        return {"status": "ok"}
+    
+    if body.get("object") == "whatsapp_business_account":
+        for entry in body.get("entry", []):
             for change in entry.get("changes", []):
                 if change.get("field") == "messages":
                     for msg in change.get("value", {}).get("messages", []):
@@ -55,10 +64,9 @@ async def handle_whatsapp_webhook(message: WhatsAppMessage, signature: str = Dep
                             await process_incoming_message(msg)
                 elif change.get("field") == "message_status_updates":
                     logging.info("Received a WhatsApp status update.")
+        return {"status": "ok"}
     else:
         raise HTTPException(status_code=404, detail="Not a WhatsApp API event")
-    
-    return {"status": "ok"}
 
 async def process_incoming_message(msg):
     from_number = msg["from"]
