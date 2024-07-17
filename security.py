@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import hashlib
 import hmac
 import os
+import logging 
 # from dotenv import load_dotenv
 
 # load_dotenv()
@@ -38,14 +39,28 @@ class SignatureBearer(HTTPBearer):
 
 signature_auth = SignatureBearer()
 
+# def verify_webhook(mode: str, token: str, challenge: str) -> str:
+#     """
+#     Verify the webhook subscription
+#     """
+#     if mode and token:
+#         if mode == "subscribe" and token == VERIFY_TOKEN:
+#             return challenge
+#         else:
+#             raise HTTPException(status_code=403, detail="Verification failed.")
+#     else:
+#         raise HTTPException(status_code=403, detail="Invalid verification parameters.")
+
+
 def verify_webhook(mode: str, token: str, challenge: str) -> str:
-    """
-    Verify the webhook subscription
-    """
+    logging.info(f"Received webhook verification request: mode={mode}, token={token}, challenge={challenge}")
     if mode and token:
         if mode == "subscribe" and token == VERIFY_TOKEN:
+            logging.info(f"Webhook verified successfully. Returning challenge: {challenge}")
             return challenge
         else:
+            logging.error(f"Verification failed. Mode: {mode}, Token: {token}")
             raise HTTPException(status_code=403, detail="Verification failed.")
     else:
+        logging.error("Invalid verification parameters")
         raise HTTPException(status_code=403, detail="Invalid verification parameters.")
