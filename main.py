@@ -29,26 +29,26 @@ async def verify_webhook_subscription(
 @app.post("/webhook")
 async def handle_whatsapp_webhook(request: Request, signature: str = Depends(signature_auth)):
     try:
-        # Log raw request body
         raw_body = await request.body()
         logger.info(f"Raw webhook payload: {raw_body}")
 
         body = await request.json()
-        logger.info(f"Received webhook payload: {body}")
-        
+        logger.info(f"Parsed webhook payload: {body}")
+
         if is_valid_whatsapp_message(body):
-            wa_message = extract_whatsapp_message(body)
-            logger.info(f"Extracted WhatsApp message: {wa_message}")
-            sendbird_user = await create_sendbird_user(wa_message["from_number"])
-            channel_url = await send_sendbird_message(sendbird_user["user_id"], Config.BOT_USER_ID, wa_message["text"])
-            whatsapp_messages[wa_message["from_number"]] = channel_url
-            return JSONResponse(content={"status": "ok"})
+            try:
+                wa_message = extract_whatsapp_message(body)
+                logger.info(f"Extracted WhatsApp message: {wa_message}")
+                sendbird_user = await create_sendbird_user(wa_message["from_number"])
+                channel_url = await send_sendbird_message(sendbird_user["user_id"], Config.BOT_USER_ID, wa_message["text"])
+                whatsapp_messages[wa_message["from_number"]] = channel_url
+                return JSONResponse(content={"status": "ok"})
+            except ValueError as ve:
+                logger.warning(f"Invalid message format: {str(ve)}")
+                return JSONResponse(content={"status": "ok"})  # Acknowledge receipt even if we can't process it
         else:
-            logger.error(f"Invalid WhatsApp message structure: {body}")
-            return JSONResponse(
-                status_code=400,
-                content={"status": "error", "message": "Invalid WhatsApp message structure"}
-            )
+            logger.info("Received a non-message WhatsApp update.")
+            return JSONResponse(content={"status": "ok"})  # Acknowledge receipt of other types of updates
     except json.JSONDecodeError:
         logger.error("Failed to decode JSON")
         raise HTTPException(status_code=400, detail="Invalid JSON provided")

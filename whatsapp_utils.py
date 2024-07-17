@@ -33,13 +33,27 @@ def is_valid_whatsapp_message(body: Dict[str, Any]) -> bool:
     return (
         body.get("object") == "whatsapp_business_account"
         and body.get("entry")
+        and isinstance(body["entry"], list)
+        and len(body["entry"]) > 0
         and body["entry"][0].get("changes")
+        and isinstance(body["entry"][0]["changes"], list)
+        and len(body["entry"][0]["changes"]) > 0
         and body["entry"][0]["changes"][0].get("value")
+        and body["entry"][0]["changes"][0].get("field") == "messages"
     )
 
 def extract_whatsapp_message(body: Dict[str, Any]) -> Dict[str, Any]:
-    message = body["entry"][0]["changes"][0]["value"]["messages"][0]
+    value = body["entry"][0]["changes"][0]["value"]
+    metadata = value.get("metadata", {})
+    messages = value.get("messages", [])
+    
+    if not messages:
+        raise ValueError("No messages found in the webhook payload")
+    
+    message = messages[0]
     return {
-        "from_number": message["from"],
-        "text": message["text"]["body"]
+        "from_number": message.get("from"),
+        "text": message.get("text", {}).get("body", ""),
+        "phone_number_id": metadata.get("phone_number_id"),
+        "display_phone_number": metadata.get("display_phone_number")
     }
