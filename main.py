@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
 # from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
+# from fastapi_limiter import FastAPILimiter
+# from fastapi_limiter.depends import RateLimiter
 import logging
 import json
 from security import signature_auth, verify_webhook
@@ -37,7 +37,7 @@ async def verify_webhook_subscription(
     logger.info(f"Webhook verified successfully. Returning challenge: {challenge}")
     return PlainTextResponse(content=result)
 
-@app.post("/webhook", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@app.post("/webhook")
 async def handle_whatsapp_webhook(request: Request, signature: str = Depends(signature_auth)):
     try:
         body = await request.json()
