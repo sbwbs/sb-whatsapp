@@ -1,9 +1,8 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 import httpx
-import uvicorn
-# import os
-# from dotenv import load_dotenv
+import logging
 from security import signature_auth, verify_webhook
 
 app = FastAPI()
@@ -37,10 +36,16 @@ async def verify_webhook_subscription(
     token: str = Query(..., alias="hub.verify_token"),
     challenge: str = Query(..., alias="hub.challenge")
 ):
-    return verify_webhook(mode, token, challenge)
+    logging.info(f"Received webhook verification request: mode={mode}, token={token}, challenge={challenge}")
+    result = verify_webhook(mode, token, challenge)
+    logging.info(f"Webhook verified successfully. Returning challenge: {challenge}")
+    return PlainTextResponse(content=result)
+
 
 @app.post("/webhook")
 async def handle_whatsapp_webhook(message: WhatsAppMessage, signature: str = Depends(signature_auth)):
+    logging.info(f"Received webhook payload: {message}")
+    
     if message.object == "whatsapp_business_account":
         for entry in message.entry:
             for change in entry.get("changes", []):
@@ -48,6 +53,11 @@ async def handle_whatsapp_webhook(message: WhatsAppMessage, signature: str = Dep
                     for msg in change.get("value", {}).get("messages", []):
                         if msg.get("type") == "text":
                             await process_incoming_message(msg)
+                elif change.get("field") == "message_status_updates":
+                    logging.info("Received a WhatsApp status update.")
+    else:
+        raise HTTPException(status_code=404, detail="Not a WhatsApp API event")
+    
     return {"status": "ok"}
 
 async def process_incoming_message(msg):

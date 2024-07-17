@@ -1,22 +1,12 @@
-from fastapi import Request, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-from fastapi.responses import PlainTextResponse
 import hashlib
 import hmac
-import os
-import logging 
-# from dotenv import load_dotenv
-
-# load_dotenv()
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 APP_SECRET = "eba224175b18cda8a1d2c0d9da067bd3"
 VERIFY_TOKEN = "123123"
 
 def validate_signature(payload: bytes, signature: str) -> bool:
-    """
-    Validate the incoming payload's signature against our expected signature
-    """
     expected_signature = hmac.new(
         bytes(APP_SECRET, "latin-1"),
         msg=payload,
@@ -31,7 +21,7 @@ class SignatureBearer(HTTPBearer):
     async def __call__(self, request: Request):
         credentials: HTTPAuthorizationCredentials = await super(SignatureBearer, self).__call__(request)
         if credentials:
-            if not credentials.scheme == "Signature":
+            if not credentials.scheme == "sha256":
                 raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
             if not validate_signature(await request.body(), credentials.credentials):
                 raise HTTPException(status_code=403, detail="Invalid signature.")
@@ -41,28 +31,11 @@ class SignatureBearer(HTTPBearer):
 
 signature_auth = SignatureBearer()
 
-# def verify_webhook(mode: str, token: str, challenge: str) -> str:
-#     """
-#     Verify the webhook subscription
-#     """
-#     if mode and token:
-#         if mode == "subscribe" and token == VERIFY_TOKEN:
-#             return challenge
-#         else:
-#             raise HTTPException(status_code=403, detail="Verification failed.")
-#     else:
-#         raise HTTPException(status_code=403, detail="Invalid verification parameters.")
-
-
 def verify_webhook(mode: str, token: str, challenge: str) -> str:
-    logging.info(f"Received webhook verification request: mode={mode}, token={token}, challenge={challenge}")
     if mode and token:
         if mode == "subscribe" and token == VERIFY_TOKEN:
-            logging.info(f"Webhook verified successfully. Returning challenge: {challenge}")
-            return PlainTextResponse(content=challenge)
+            return challenge
         else:
-            logging.error(f"Verification failed. Mode: {mode}, Token: {token}")
             raise HTTPException(status_code=403, detail="Verification failed.")
     else:
-        logging.error("Invalid verification parameters")
         raise HTTPException(status_code=403, detail="Invalid verification parameters.")
