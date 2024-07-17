@@ -1,0 +1,4 @@
+fastapi[all]
+uvicorn[all]
+httpx[all] 
+pydantic[all]
