@@ -34,8 +34,9 @@ async def handle_whatsapp_webhook(request: Request, signature: str = Depends(sig
         print(f"Raw webhook payload: {raw_body.decode()}")
         logger.info(f"Raw webhook payload: {raw_body}")
 
-        body = await request.json()
-        print(f"Parsed webhook payload: {json.dumps(body, indent=2)}")
+        # body = await request.json()
+         # Parse the JSON body
+        body = json.loads(raw_body)
         logger.info(f"Parsed webhook payload: {body}")
 
         if is_valid_whatsapp_message(body):
