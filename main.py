@@ -9,7 +9,8 @@ from config import Config
 
 app = FastAPI()
 # Logging
-logging.basicConfig(level=logging.INFO)
+# Setup logging
+Config.setup_logging()
 logger = logging.getLogger(__name__)
 
 # In-memory cache to track messages

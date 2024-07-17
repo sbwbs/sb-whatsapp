@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -13,3 +14,13 @@ class Config:
     BOT_USER_ID = os.getenv("BOT_USER_ID")
     APP_SECRET = os.getenv("APP_SECRET")
     VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+
+    @staticmethod
+    def setup_logging():
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[logging.StreamHandler()]
+        )
+
