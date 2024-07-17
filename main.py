@@ -30,30 +30,32 @@ async def verify_webhook_subscription(
 async def handle_whatsapp_webhook(request: Request, signature: str = Depends(signature_auth)):
     try:
         raw_body = await request.body()
-        logger.info(f"Raw webhook payload: {raw_body}")
+        print(f"Raw webhook payload: {raw_body.decode()}")
+        # logger.info(f"Raw webhook payload: {raw_body}")
 
         body = await request.json()
-        logger.info(f"Parsed webhook payload: {body}")
+        print(f"Parsed webhook payload: {json.dumps(body, indent=2)}")
+        # logger.info(f"Parsed webhook payload: {body}")
 
         if is_valid_whatsapp_message(body):
             try:
                 wa_message = extract_whatsapp_message(body)
-                logger.info(f"Extracted WhatsApp message: {wa_message}")
+                print(f"Extracted WhatsApp message: {wa_message}")
                 sendbird_user = await create_sendbird_user(wa_message["from_number"])
                 channel_url = await send_sendbird_message(sendbird_user["user_id"], Config.BOT_USER_ID, wa_message["text"])
                 whatsapp_messages[wa_message["from_number"]] = channel_url
                 return JSONResponse(content={"status": "ok"})
             except ValueError as ve:
-                logger.warning(f"Invalid message format: {str(ve)}")
+                print(f"Invalid message format: {str(ve)}")
                 return JSONResponse(content={"status": "ok"})  # Acknowledge receipt even if we can't process it
         else:
-            logger.info("Received a non-message WhatsApp update.")
+            print("Received a non-message WhatsApp update.")
             return JSONResponse(content={"status": "ok"})  # Acknowledge receipt of other types of updates
     except json.JSONDecodeError:
-        logger.error("Failed to decode JSON")
+        print("Failed to decode JSON")
         raise HTTPException(status_code=400, detail="Invalid JSON provided")
     except Exception as e:
-        logger.error(f"Error processing webhook: {str(e)}")
+        print(f"Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.post("/sbwebhook")
