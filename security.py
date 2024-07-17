@@ -8,7 +8,7 @@ import os
 # load_dotenv()
 
 APP_SECRET = "eba224175b18cda8a1d2c0d9da067bd3"
-VERIFY_TOKEN = "8318123"
+VERIFY_TOKEN = "123123"
 
 def validate_signature(payload: bytes, signature: str) -> bool:
     """
